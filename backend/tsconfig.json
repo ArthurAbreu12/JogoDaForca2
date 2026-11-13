@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    // Configurações de Ambiente e Módulos para Node.js
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["esnext"],
+    "types": ["node"], // <- Essencial para o Node.js reconhecer 'process', 'console', etc.
+
+    // Configurações de Saída e Debug
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Opções Estritas e Boas Práticas
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  },
+  "include": ["src", "prisma"] // <- Inclui a pasta do código e a pasta do seed do Prisma
+}
