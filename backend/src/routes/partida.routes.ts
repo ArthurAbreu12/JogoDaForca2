@@ -52,7 +52,7 @@ export async function rotasPartidas(app: FastifyInstance) {
       vidasRestantes,
       status: novaPartida.status,
       pontos: novaPartida.pontos,
-      palavra: null, // a palavra nunca é enviada enquanto estiver em andamentp
+      palavra: null,
     });
   });
 
@@ -82,7 +82,7 @@ export async function rotasPartidas(app: FastifyInstance) {
       vidasRestantes,
       status: partida.status,
       pontos: partida.pontos,
-      palavra: partida.status === 'em_andamento' ? null : partida.palavra.texto, // RN07
+      palavra: partida.status === 'em_andamento' ? null : partida.palavra.texto,
     });
   });
 
@@ -100,14 +100,12 @@ export async function rotasPartidas(app: FastifyInstance) {
       return reply.status(404).send({ erro: 'Partida não encontrada' });
     }
 
-    // RN04: Partida encerrada não aceita palpites
     if (partida.status !== 'em_andamento') {
       return reply.status(409).send({ erro: 'Partida já encerrada' });
     }
 
     const tentativasArr = partida.tentativas ? [...partida.tentativas] : [];
 
-    // nao deixa botar a mesma letra
     if (tentativasArr.includes(letra)) {
       return reply.status(409).send({ erro: 'Letra já tentada' });
     }
@@ -116,7 +114,7 @@ export async function rotasPartidas(app: FastifyInstance) {
     let novosErros = partida.erros;
 
     if (!partida.palavra.texto.includes(letra)) {
-      novosErros += 1; // cada erro consome 1 vida
+      novosErros += 1;
     }
 
     const vidasRestantes = Math.max(0, VIDAS_INICIAIS - novosErros);
@@ -126,10 +124,9 @@ export async function rotasPartidas(app: FastifyInstance) {
     let novosPontos = 0;
     let finalizadaEmData: Date | null = null;
 
-    //  vitoria ou derrota
     if (!mascara.includes('_')) {
       novoStatus = 'vitoria';
-      novosPontos = calcularPontos(partida.palavra.texto, vidasRestantes); // RN06
+      novosPontos = calcularPontos(partida.palavra.texto, vidasRestantes);
       finalizadaEmData = new Date();
     } else if (vidasRestantes === 0) {
       novoStatus = 'derrota';
@@ -137,7 +134,6 @@ export async function rotasPartidas(app: FastifyInstance) {
       finalizadaEmData = new Date();
     }
 
-    // atualiza no banco
     const partidaAtualizada = await prisma.partida.update({
       where: { id: partida.id },
       data: {
@@ -163,23 +159,31 @@ export async function rotasPartidas(app: FastifyInstance) {
     });
   });
 
-  // GET /api/ranking - retorna o top 10 vitórias
+  // GET /api/ranking - retorna o top 10 consolidado por jogador
   app.get('/ranking', async (_req: FastifyRequest, reply: FastifyReply) => {
-    const vitorias = await prisma.partida.findMany({
+    // Agrupa as partidas de vitória por nome do jogador e soma os pontos
+    const rankingAgrupado = await prisma.partida.groupBy({
+      by: ['jogador'],
       where: { status: 'vitoria' },
-      include: { palavra: true },
-      orderBy: [
-        { pontos: 'desc' },
-        { finalizadaEm: 'asc' },
-      ],
+      _sum: {
+        pontos: true,
+      },
+      _max: {
+        finalizadaEm: true,
+      },
+      orderBy: {
+        _sum: {
+          pontos: 'desc',
+        },
+      },
       take: 10,
     });
 
-    const ranking = vitorias.map((v: { jogador: string; pontos: number; palavra: { texto: string }; finalizadaEm: Date | null }) => ({
-      jogador: v.jogador,
-      pontos: v.pontos,
-      palavra: v.palavra.texto,
-      finalizadaEm: v.finalizadaEm ? v.finalizadaEm.toISOString() : new Date().toISOString(),
+    const ranking = rankingAgrupado.map((item) => ({
+      jogador: item.jogador,
+      pontos: item._sum.pontos || 0,
+      palavra: '-', // Opcional (como agrupa vários jogos, exibe um traço ou o padrão)
+      finalizadaEm: item._max.finalizadaEm ? item._max.finalizadaEm.toISOString() : new Date().toISOString(),
     }));
 
     return reply.send(ranking);

@@ -5,6 +5,29 @@ import { Mascara } from './components/mascara';
 import { Teclado } from './components/teclado';
 import { Vidas } from './components/vidas';
 import { Ranking } from './components/ranking';
+import './App.css';
+
+//  boneco e as vidas
+function BonecoForca({ vidasRestantes }: { vidasRestantes: number }) {
+  const erros = 6 - vidasRestantes;
+  return (
+    <svg width="160" height="180" viewBox="0 0 160 180" style={{ stroke: '#e2e8f0', strokeWidth: 4, fill: 'none', strokeLinecap: 'round' }}>
+      {/* Base e Poste */}
+      <line x1="20" y1="170" x2="100" y2="170" stroke="#475569" />
+      <line x1="50" y1="170" x2="50" y2="20" stroke="#475569" />
+      <line x1="50" y1="20" x2="115" y2="20" stroke="#475569" />
+      <line x1="115" y1="20" x2="115" y2="40" stroke="#38bdf8" />
+
+      {/* Boneco aparece conforme os erros */}
+      {erros >= 1 && <circle cx="115" cy="55" r="15" stroke="#f87171" />}
+      {erros >= 2 && <line x1="115" y1="70" x2="115" y2="115" stroke="#f87171" />}
+      {erros >= 3 && <line x1="115" y1="80" x2="95" y2="100" stroke="#f87171" />}
+      {erros >= 4 && <line x1="115" y1="80" x2="135" y2="100" stroke="#f87171" />}
+      {erros >= 5 && <line x1="115" y1="115" x2="95" y2="145" stroke="#f87171" />}
+      {erros >= 6 && <line x1="115" y1="115" x2="135" y2="145" stroke="#f87171" />}
+    </svg>
+  );
+}
 
 export function App() {
   const [jogador, setJogador] = useState('');
@@ -13,7 +36,6 @@ export function App() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
-  // carrega o ranking ao abrir a aplicacao
   useEffect(() => {
     carregarRanking();
   }, []);
@@ -27,7 +49,6 @@ export function App() {
     }
   }
 
-  // validacao do nome 
   const apelidoValido = jogador.trim().length >= 3 && jogador.trim().length <= 20;
 
   async function iniciarPartida(e: React.FormEvent) {
@@ -48,12 +69,12 @@ export function App() {
 
   async function enviarPalpite(letra: string) {
     if (!partida || partida.status !== 'em_andamento') return;
+    setErro(null);
 
     try {
       const partidaAtualizada = await api.palpitar(partida.id, letra);
       setPartida(partidaAtualizada);
       
-      // se a partida encerrou, atualiza o ranking em segundo plano
       if (partidaAtualizada.status !== 'em_andamento') {
         carregarRanking();
       }
@@ -64,101 +85,148 @@ export function App() {
 
   function reiniciarJogo() {
     setPartida(null);
-    setJogador('');
+    setErro(null); // limpa os erros antigos quando volta pro inicio
     carregarRanking();
   }
 
-  // tela do final do jogo
-  if (partida && partida.status !== 'em_andamento') {
-    const vitoria = partida.status === 'vitoria';
-    return (
-      <div style={{ textAlign: 'center', padding: '30px', fontFamily: 'sans-serif' }}>
-        <h1>{vitoria ? '🎉 Parabéns, Você Venceu!' : '😢 Fim de Jogo - Derrota!'}</h1>
-        <p style={{ fontSize: '1.2rem' }}>A palavra secreta era: <strong>{partida.palavra}</strong></p>
-        <p style={{ fontSize: '1.2rem' }}>Pontuação total: <strong>{partida.pontos} pontos</strong></p>
-        
-        <button 
-          onClick={reiniciarJogo}
-          style={{ padding: '12px 24px', fontSize: '1rem', cursor: 'pointer', marginTop: '20px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '4px' }}
-        >
-          Jogar de novo
-        </button>
-      </div>
-    );
-  }
-
-  // tela do jogo rodando
-  if (partida) {
-    return (
-      <div style={{ textAlign: 'center', padding: '20px', fontFamily: 'sans-serif', maxWidth: '500px', margin: '0 auto' }}>
-        <h2>Forca Dev</h2>
-        <p>Categoria: <strong>{partida.categoria}</strong> | Jogador: <strong>{partida.jogador}</strong></p>
-        
-        {erro && <div style={{ color: 'red', margin: '10px 0' }}>{erro}</div>}
-
-        <Vidas vidasRestantes={partida.vidasRestantes} />
-        <Mascara mascara={partida.mascara} />
-
-        {/* Linha protegida contra valores undefined */}
-        <p style={{ margin: '15px 0' }}>
-          Letras tentadas: <strong>{(partida.tentativas || []).join(', ') || 'Nenhuma'}</strong>
-        </p>
-
-        <Teclado 
-          tentadas={partida.tentativas || []} 
-          desabilitado={false} 
-          onLetra={enviarPalpite} 
-        />
-
-        <div style={{ marginTop: '30px' }}>
-          <button onClick={reiniciarJogo} style={{ padding: '8px 16px', cursor: 'pointer', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px' }}>
-            Desistir / Sair
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // tela inicial
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>🎮 Forca Dev</h1>
-      
-      {erro && <div style={{ color: 'red', textAlign: 'center', margin: '10px 0' }}>{erro}</div>}
-
-      <form onSubmit={iniciarPartida} style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <div>
-          <label htmlFor="apelido" style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
-            Digite seu apelido (3 a 20 caracteres):
-          </label>
-          <input
-            id="apelido"
-            type="text"
-            value={jogador}
-            onChange={(e) => setJogador(e.target.value)}
-            maxLength={20}
-            style={{ padding: '10px', fontSize: '1rem', width: '250px', textAlign: 'center', borderRadius: '4px', border: '1px solid #ccc' }}
-          />
+    <div className="dev-window">
+      {/* Barra superior estilo IDE / Terminal */}
+      <div className="window-header">
+        <div className="window-dots">
+          <span className="dot red"></span>
+          <span className="dot yellow"></span>
+          <span className="dot green"></span>
         </div>
-        <button
-          type="submit"
-          disabled={!apelidoValido || carregando}
-          style={{
-            marginTop: '15px',
-            padding: '10px 25px',
-            fontSize: '1rem',
-            cursor: !apelidoValido || carregando ? 'not-allowed' : 'pointer',
-            backgroundColor: !apelidoValido ? '#ccc' : '#007bff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-          }}
-        >
-          {carregando ? 'Iniciando...' : 'Jogar'}
-        </button>
-      </form>
+        <div className="window-title">trabalho - jogo da forca</div>
+        <div style={{ width: '44px' }}></div>
+      </div>
 
-      <Ranking itens={ranking} />
+      <div className="window-body">
+        {erro && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid #ef4444',
+            color: '#fca5a5',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            textAlign: 'center',
+            fontFamily: "'Fira Code', monospace",
+            fontSize: '0.9rem'
+          }}>
+            ⚠️ {erro}
+          </div>
+        )}
+
+        {/* TELA DE FIM DE JOGO */}
+        {partida && partida.status !== 'em_andamento' && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div className="hero-badge">
+              {partida.status === 'vitoria' ? 'BUILD SUCCEEDED' : 'RUNTIME ERROR'}
+            </div>
+            <h1 style={{ 
+              fontSize: '2.5rem', 
+              color: partida.status === 'vitoria' ? '#10b981' : '#ef4444',
+              marginBottom: '15px'
+            }}>
+              {partida.status === 'vitoria' ? '🎉 Você Venceu!' : '💀 Fim de Jogo!'}
+            </h1>
+            <p style={{ fontSize: '1.1rem', color: '#94a3b8', marginBottom: '10px' }}>
+              A palavra secreta era: <strong style={{ color: '#38bdf8', fontFamily: "'Fira Code', monospace" }}>{partida.palavra}</strong>
+            </p>
+            <p style={{ fontSize: '1.2rem', marginBottom: '30px' }}>
+              Pontuação da partida: <strong style={{ color: '#fbbf24' }}>+{partida.pontos} pts</strong>
+            </p>
+            
+            <button onClick={reiniciarJogo} className="btn-neon" style={{ maxWidth: '280px' }}>
+              Jogar Novamente
+            </button>
+          </div>
+        )}
+
+        {/* TELA DO JOGO EM ANDAMENTO */}
+        {partida && partida.status === 'em_andamento' && (
+          <div>
+            <div className="game-header">
+              <div className="tag-info">DEV: <span>{partida.jogador}</span></div>
+              <div className="tag-info">STACK: <span>{partida.categoria}</span></div>
+              <Vidas vidasRestantes={partida.vidasRestantes} />
+            </div>
+
+            <div className="game-stage">
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <BonecoForca vidasRestantes={partida.vidasRestantes} />
+              </div>
+              
+              <div>
+                <Mascara mascara={partida.mascara} />
+                <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.85rem', color: '#64748b', fontFamily: "'Fira Code', monospace" }}>
+                  Tentativas: <span style={{ color: '#cbd5e1' }}>{(partida.tentativas || partida.tentativas || []).join(', ') || 'Nenhuma'}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="teclado-wrapper" style={{ textAlign: 'center', marginBottom: '25px' }}>
+              <Teclado 
+                tentadas={partida.tentativas || partida.tentativas || []} 
+                desabilitado={false} 
+                onLetra={enviarPalpite} 
+              />
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <button onClick={reiniciarJogo} className="btn-danger">
+                Abandonar Partida
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/*tela inicial*/}
+
+        
+        {!partida && (
+          <div className="home-grid">
+            <div>
+              <h1 className="hero-title">Forca Dev</h1>
+              <p className="hero-desc">
+                Adivinhe termos de programação antes que o código quebre. Use o mesmo apelido para somar seus pontos no ranking!
+              </p>
+
+              <form onSubmit={iniciarPartida}>
+                <label htmlFor="apelido" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#94a3b8' }}>
+                  SEU APELIDO DEV (3 A 20 CARACTERES)
+                </label>
+                <input
+                  id="apelido"
+                  type="text"
+                  className="dev-input"
+                  value={jogador}
+                  onChange={(e) => setJogador(e.target.value)}
+                  maxLength={20}
+                  placeholder="ex: arthur_dev"
+                />
+                <button
+                  type="submit"
+                  disabled={!apelidoValido || carregando}
+                  className="btn-neon"
+                >
+                  {carregando ? 'Compilando...' : '▶ Iniciar Partida'}
+                </button>
+              </form>
+            </div>
+
+            <div className="ranking-box">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '1.2rem' }}>🏆</span>
+                <span style={{ fontWeight: '700', fontSize: '1.1rem', color: '#f8fafc' }}>Top 10 Devs</span>
+              </div>
+              <Ranking itens={ranking} />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

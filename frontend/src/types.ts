@@ -16,5 +16,5 @@ export interface ItemRanking {
   jogador: string;
   pontos: number;
   palavra: string;
-  finalizadaEm: string; // data ISO
+  finalizadaEm: string;
 }

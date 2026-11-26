@@ -3,17 +3,18 @@ interface MascaraProps {
 }
 
 export function Mascara({ mascara }: MascaraProps) {
-  // Se for array, transforma em string limpa sem vírgulas feias
-  const textoMascara = Array.isArray(mascara) ? mascara.join(' ') : mascara.split('').join(' ');
+  const textoMascara = Array.isArray(mascara) ? mascara.join(' ') : mascara;
 
   return (
     <div style={{ 
-      fontSize: '2.5rem', 
-      letterSpacing: '8px', 
-      margin: '20px 0', 
-      fontFamily: 'monospace',
-      fontWeight: 'bold',
-      color: '#ffffff'
+      fontSize: '2.4rem', 
+      letterSpacing: '10px', 
+      fontFamily: "'Fira Code', monospace",
+      fontWeight: '700',
+      color: '#38bdf8',
+      textShadow: '0 0 15px rgba(56, 189, 248, 0.4)',
+      wordBreak: 'break-word',
+      textAlign: 'center'
     }}>
       {textoMascara}
     </div>
